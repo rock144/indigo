@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="b77b6395-021c-478c-b875-c29cfa1ee395" >
+		<http:request-connection host="indigo-services.us-e2.cloudhub.io" port="80">
+		</http:request-connection>
+	</http:request-config>
+	<flow name="IndigoFlightsFlow" doc:id="2d860677-c105-46bd-af4f-d4a904c4da87" >
+		<logger level="INFO" doc:name="Logger" doc:id="e069d14e-e15b-4a6c-8d17-4e686636cff5" />
+		<http:request method="GET" doc:name="Request" doc:id="9f6933ef-9aa6-4d78-9fa9-e1150eacc37c" config-ref="HTTP_Request_configuration" path="/api/getFlights">
+			<http:body ><![CDATA[payload]]></http:body>
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	from : attributes.queryparams.source,
+	to : attributes.queryparams.destination,
+	depatureDate : attributes.queryparams.doj
+}]]]></http:query-params>
+		</http:request>
+		<ee:transform doc:name="Transform Message" doc:id="9999641a-6a50-44c7-801d-222a2a920fc9" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="cb539484-b2c4-4f9e-acb1-88301f1bb7c6" />
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="92534b93-df9a-4199-8e24-758387e135b1" type="ANY">
+				<ee:transform doc:name="Transform Message" doc:id="44bcabef-c47e-4389-8693-a64640124385" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	statuscode:500,
+	message: "unable to process your request,please try after sometime"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>
